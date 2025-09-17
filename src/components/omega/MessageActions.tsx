@@ -13,7 +13,7 @@ import {
   ThumbsUp, 
   Laugh, 
   Angry,
-  Sad,
+  Frown,
   Star,
   MapPin
 } from 'lucide-react';
@@ -33,7 +33,7 @@ const REACTIONS = [
   { emoji: '❤️', label: 'حب', icon: Heart },
   { emoji: '👍', label: 'إعجاب', icon: ThumbsUp },
   { emoji: '😂', label: 'ضحك', icon: Laugh },
-  { emoji: '😢', label: 'حزن', icon: Sad },
+  { emoji: '😢', label: 'حزن', icon: Frown },
   { emoji: '😡', label: 'غضب', icon: Angry },
   { emoji: '⭐', label: 'نجمة', icon: Star },
 ];

@@ -22,9 +22,14 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRoomData } from "@/hooks/useRoomData";
+import { useEncryption, EncryptionMode } from "@/hooks/useEncryption";
+import { useAdvancedMessaging } from "@/hooks/useAdvancedMessaging";
 import { FileUploadZone } from "./FileUploadZone";
 import { AudioRecorder } from "./AudioRecorder";
 import { CallControls } from "./CallControls";
+import { EncryptionPanel } from "./EncryptionPanel";
+import { MessageActions } from "./MessageActions";
+import { AdvancedFeatures } from "./AdvancedFeatures";
 
 interface Message {
   id: string;
@@ -50,6 +55,8 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
   const [newMessage, setNewMessage] = useState("");
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showCallControls, setShowCallControls] = useState(false);
+  const [showEncryptionPanel, setShowEncryptionPanel] = useState(false);
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -63,6 +70,22 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
     participantId
   } = useRoomData(roomCode, userName);
 
+  const { encryptMessage, decryptMessage } = useEncryption();
+  
+  const {
+    typingUsers,
+    searchQuery,
+    setSearchQuery,
+    selectedMessage,
+    setSelectedMessage,
+    handleTyping,
+    addReaction,
+    deleteMessage,
+    editMessage,
+    replyToMessage,
+    shareLocation
+  } = useAdvancedMessaging(roomCode, participantId);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -74,8 +97,16 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     
-    await sendMessage(newMessage.trim());
+    const messageToSend = encryptMessage(newMessage.trim());
+    await sendMessage(messageToSend);
     setNewMessage("");
+  };
+
+  const handleEncryptionModeChange = (mode: EncryptionMode, key: string) => {
+    toast({
+      title: "تم تحديث التشفير",
+      description: `تم تغيير وضع التشفير إلى: ${mode}`,
+    });
   };
 
   const handleFileUpload = async (file: File, type: 'file' | 'image' | 'video' | 'audio') => {
@@ -105,6 +136,19 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    handleTyping();
+  };
+
+  const copyMessageContent = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: "تم النسخ",
+      description: "تم نسخ النص للحافظة",
+    });
   };
 
   const copyRoomCode = () => {
@@ -180,6 +224,22 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setShowEncryptionPanel(!showEncryptionPanel)}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <Shield className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
+              className="text-muted-foreground hover:text-accent"
+            >
+              <Users className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowCallControls(!showCallControls)}
               className="text-muted-foreground hover:text-accent"
             >
@@ -205,6 +265,13 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
         </div>
       </div>
 
+      {/* Encryption Panel */}
+      {showEncryptionPanel && (
+        <div className="border-b border-border/50 p-4">
+          <EncryptionPanel onEncryptionModeChange={handleEncryptionModeChange} />
+        </div>
+      )}
+
       {/* Call Controls */}
       {showCallControls && (
         <div className="gradient-card border-b border-border/50 p-4">
@@ -213,7 +280,8 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 flex">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-8">
             <div className="p-4 rounded-full bg-primary/10 w-fit mx-auto mb-4">
@@ -229,11 +297,14 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
         {messages.map((message) => {
           const isOwn = message.participants.user_name === currentUserName;
           const senderName = message.participants.user_name;
+          const displayContent = message.message_type === 'text' && message.content 
+            ? decryptMessage(message.content) 
+            : message.content;
           
           return (
             <div
               key={message.id}
-              className={`flex items-start gap-3 animate-encrypt-in ${
+              className={`group flex items-start gap-3 animate-encrypt-in ${
                 isOwn ? 'flex-row-reverse' : ''
               }`}
             >
@@ -251,6 +322,16 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
                   <span className="text-xs text-muted-foreground">
                     {formatTime(message.created_at)}
                   </span>
+                  <MessageActions
+                    messageId={message.id}
+                    messageContent={displayContent || ''}
+                    isOwn={isOwn}
+                    onReply={replyToMessage}
+                    onEdit={editMessage}
+                    onDelete={deleteMessage}
+                    onReact={addReaction}
+                    onCopy={copyMessageContent}
+                  />
                 </div>
                 
                 <Card className={`p-3 max-w-xs ${
@@ -260,7 +341,7 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
                 }`}>
                   {/* Text message */}
                   {message.message_type === 'text' && (
-                    <p className="text-sm break-words">{message.content}</p>
+                    <p className="text-sm break-words">{displayContent}</p>
                   )}
                   
                   {/* Image message */}
@@ -349,6 +430,19 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
 
 
         <div ref={messagesEndRef} />
+        </div>
+
+        {/* Advanced Features Sidebar */}
+        {showAdvancedFeatures && (
+          <div className="w-80 border-l border-border/50 overflow-y-auto">
+            <AdvancedFeatures
+              onSearch={setSearchQuery}
+              onShareLocation={shareLocation}
+              searchQuery={searchQuery}
+              typingUsers={typingUsers}
+            />
+          </div>
+        )}
       </div>
 
       {/* Input Area */}
@@ -385,7 +479,7 @@ export const ChatRoom = ({ roomCode, userName, onLeaveRoom }: ChatRoomProps) => 
 
           <Input
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             placeholder="اكتب رسالتك..."
             className="flex-1 text-right bg-secondary/50 border-border/50"

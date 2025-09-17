@@ -14,38 +14,179 @@ export type Database = {
   }
   public: {
     Tables: {
+      message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          participant_id: string
+          reaction: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          participant_id: string
+          reaction: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          participant_id?: string
+          reaction?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_replies: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reply_preview: string | null
+          reply_to_message_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reply_preview?: string | null
+          reply_to_message_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reply_preview?: string | null
+          reply_to_message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_replies_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_replies_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_status: {
+        Row: {
+          delivered_at: string | null
+          id: string
+          is_delivered: boolean | null
+          is_read: boolean | null
+          is_sent: boolean | null
+          message_id: string
+          participant_id: string
+          read_at: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          delivered_at?: string | null
+          id?: string
+          is_delivered?: boolean | null
+          is_read?: boolean | null
+          is_sent?: boolean | null
+          message_id: string
+          participant_id: string
+          read_at?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          delivered_at?: string | null
+          id?: string
+          is_delivered?: boolean | null
+          is_read?: boolean | null
+          is_sent?: boolean | null
+          message_id?: string
+          participant_id?: string
+          read_at?: string | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_status_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_status_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string | null
           created_at: string
+          edited_at: string | null
           file_name: string | null
           file_size: number | null
           file_url: string | null
           id: string
+          is_edited: boolean | null
           message_type: string
           participant_id: string
+          reply_preview: string | null
+          reply_to_message_id: string | null
           room_id: string
         }
         Insert: {
           content?: string | null
           created_at?: string
+          edited_at?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string | null
           id?: string
+          is_edited?: boolean | null
           message_type?: string
           participant_id: string
+          reply_preview?: string | null
+          reply_to_message_id?: string | null
           room_id: string
         }
         Update: {
           content?: string | null
           created_at?: string
+          edited_at?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string | null
           id?: string
+          is_edited?: boolean | null
           message_type?: string
           participant_id?: string
+          reply_preview?: string | null
+          reply_to_message_id?: string | null
           room_id?: string
         }
         Relationships: [
@@ -54,6 +195,13 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
@@ -126,6 +274,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      typing_indicators: {
+        Row: {
+          id: string
+          is_typing: boolean
+          participant_id: string
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          is_typing?: boolean
+          participant_id: string
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          is_typing?: boolean
+          participant_id?: string
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_indicators_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "typing_indicators_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
